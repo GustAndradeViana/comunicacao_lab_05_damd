@@ -1,18 +1,16 @@
-**Você chamou proxy.calcular("soma", 10, 3) como se fosse uma função local. Onde, exatamente, ocorre a serialização XML? Inspecione o tráfego HTTP com logRequests=True no servidor e observe o que é transmitido.**
+
+**Stubs e skeletons: Explique, com base no que você observou na Tarefa 2, o papel do stub (cliente) e do skeleton (servidor) em qualquer sistema RPC. Por que esses componentes existem — o que aconteceria sem eles?**
+O stub serializa os argumentos via marshalling e envia a requisição, enquanto o skeleton desserializa e invoca o procedimento real no servidor. Esses componentes abstraem toda a infraestrutura de rede do desenvolvedor. Em gRPC, ambos são gerados automaticamente pelo .proto, garantindo consistência. Sem eles, código de negócio e código de rede ficariam misturados, tornando o sistema frágil e de difícil manutenção.
 
 
-**O que é um xmlrpc.client.Fault? Como ele se compara a uma exceção Python convencional? Por que o RPC precisa de um mecanismo especial para propagar erros do servidor para o cliente?**
+**REST não é RPC: Fielding (2000) critica explicitamente o uso de RPC sobre HTTP por violar a restrição de interface uniforme do REST. Com base nas Tarefas 1 e 3, descreva uma diferença fundamental de modelagem entre as duas abordagens, usando um exemplo concreto da sua implementação.**
+No RPC você expõe ações como Calcular(RequisicaoCalculo), enquanto no REST você modela recursos e age sobre eles com verbos HTTP, como POST /calculos. Fielding critica o RPC sobre HTTP porque URLs orientadas a verbo quebram a interface uniforme, que exige semântica padronizada. Essa distinção afeta diretamente cacheabilidade e acoplamento entre cliente e servidor.
 
+**Evolução de contrato: O .proto da Tarefa 4 define o campo resultado como double. Se você precisasse adicionar um novo campo unidade: string ao RespostaCalculo sem quebrar clientes existentes, como o Protobuf lida com isso? E como o REST (sem schema) lidaria com a mesma mudança?**
+O Protobuf usa field numbers para garantir compatibilidade retroativa: adicionar string unidade = 2; ao RespostaCalculo não quebra clientes antigos, pois eles simplesmente ignoram campos desconhecidos. No REST sem schema, adicionar o campo ao JSON também raramente quebra clientes, mas sem nenhuma garantia formal. A diferença crítica é que o Protobuf valida isso em tempo de compilação; o REST depende de disciplina do desenvolvedor.
 
-**O método system.listMethods() demonstra introspecção remota. Qual das transparências da ISO/RM-ODP (vistas no Lab 04) esse recurso relaciona-se mais diretamente? Justifique.**
+**Escolha de tecnologia: Considere o seguinte cenário: uma startup precisa expor uma API de pagamentos tanto para parceiros externos (apps de terceiros) quanto para comunicação interna entre 10 microsserviços. Que tecnologia você recomendaria para cada caso e por quê? Baseie-se nos critérios do comparativo da Tarefa 5.**
+Para parceiros externos recomendaria REST, pela adoção universal e fácil integração sem tooling específico. Para comunicação interna entre os microsserviços, gRPC, pela serialização binária com Protobuf, menor latência e contratos fortemente tipados. Essa combinação, REST para fora, gRPC para dentro, equilibra interoperabilidade externa com eficiência interna
 
-
-**Identifique no código as quatro etapas do ciclo de uma chamada RPC descritas por Birrell & Nelson (1984): marshalling, transmissão, dispatching e unmarshalling. Em qual linha de código cada etapa ocorre?**
-
-
-**O XML-RPC usa XML; o gRPC usa Protobuf binário; este stub usa JSON. Qual a consequência prática de usar JSON em vez de Protobuf para um sistema com alto volume de chamadas? Considere tamanho de payload e overhead de parsing.**
-
-
-**O framing (4 bytes de tamanho + payload) é necessário por uma propriedade do protocolo TCP. Qual é essa propriedade, e o que aconteceria se você não usasse framing?**
-
-
+**Conexão com Labs anteriores: O Lab 04 mostrou que transparência excessiva pode ser prejudicial. Como isso se aplica ao RPC? Em que situação a transparência do RPC — que faz uma chamada remota parecer local — pode levar um desenvolvedor a tomar uma decisão de design errada?**
+O Lab 04 mostrou que transparência excessiva faz o desenvolvedor ignorar falhas e latência que não existem localmente. No RPC, isso ocorre quando se chama um serviço remoto dentro de um loop sem circuit breaker, assumindo confiabilidade local. A transparência do RPC é útil, mas perigosa quando obscurece a necessidade de idempotência e tratamento de falhas parciais.
